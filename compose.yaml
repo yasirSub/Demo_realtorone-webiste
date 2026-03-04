@@ -13,6 +13,7 @@ services:
     # Pre-built image from GHCR (built by GitHub Actions on push to main)
     # No build: - Hostinger pulls this image; does not build locally
     image: ghcr.io/yasirsub/realtorone-website:latest
+    pull_policy: always
     container_name: realtorone-website
     restart: always
     ports:
