@@ -10,9 +10,9 @@
 version: '3.8'
 services:
   website:
-    # Use pre-built image from GHCR (built by GitHub Actions on push to main)
+    # Pre-built image from GHCR (built by GitHub Actions on push to main)
+    # No build: - Hostinger pulls this image; does not build locally
     image: ghcr.io/yasirsub/realtorone-website:latest
-    build: .  # Fallback: build locally if image not found
     container_name: realtorone-website
     restart: always
     ports:
