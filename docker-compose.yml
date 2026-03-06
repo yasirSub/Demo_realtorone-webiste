@@ -1,14 +1,15 @@
 # Same as compose.yaml - some tools look for docker-compose.yml
-# Image: ghcr.io/yasirsub/realtorone-website:latest (pre-built by GitHub Actions)
 version: '3.8'
 services:
   website:
-    image: ghcr.io/yasirsub/realtorone-website:latest
-    pull_policy: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: realtorone-website:local
     container_name: realtorone-website
     restart: always
     ports:
-      - "80:80"
+      - "${WEBSITE_PORT:-3001}:80"
     environment:
       - API_PROXY_URL=${API_PROXY_URL:-http://host.docker.internal:8000/api/}
     extra_hosts:
