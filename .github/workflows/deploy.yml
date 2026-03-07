@@ -4,26 +4,60 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     steps:
-      - name: Deploy via SSH
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build website
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+        run: npm run build
+
+      - name: Ensure target directory exists
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 187.77.184.129
-          username: root
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            mkdir -p /root/realtorone/website
-            cd /root/realtorone/website
-            if [ ! -d .git ]; then
-              git clone https://github.com/yasirSub/realtorone-website.git .
-            fi
-            git pull origin main --rebase
-            # Stop default host Nginx to avoid port 80 conflict
-            sudo systemctl stop nginx || true
-            sudo systemctl disable nginx || true
-            docker compose down --remove-orphans
-            docker compose up -d --build
+            mkdir -p "${{ secrets.VPS_WEB_ROOT }}"
+
+      - name: Upload built website
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: dist/*
+          target: ${{ secrets.VPS_WEB_ROOT }}
+          strip_components: 1
+          rm: true
+
+      - name: Fix permissions and reload nginx
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            chown -R www-data:www-data "${{ secrets.VPS_WEB_ROOT }}" || true
+            find "${{ secrets.VPS_WEB_ROOT }}" -type d -exec chmod 755 {} \;
+            find "${{ secrets.VPS_WEB_ROOT }}" -type f -exec chmod 644 {} \;
+            sudo systemctl reload nginx || sudo service nginx reload || true

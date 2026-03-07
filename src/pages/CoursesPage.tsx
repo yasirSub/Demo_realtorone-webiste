@@ -42,6 +42,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ courses, setCourses })
     const [saving, setSaving] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+    const [feedback, setFeedback] = useState<string | null>(null);
     const [formData, setFormData] = useState<Partial<Course> & { thumbnail_url?: string }>({
         title: '',
         description: '',
@@ -52,29 +53,49 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ courses, setCourses })
     const [uploading, setUploading] = useState(false);
     const [selectedCourseForCurriculum, setSelectedCourseForCurriculum] = useState<number | null>(null);
 
+    const getErrorMessage = (error: unknown, fallback: string) => {
+        if (error instanceof Error && error.message) return error.message;
+        return fallback;
+    };
+
     const loadCourses = async () => {
         try {
             const res = await apiClient.getCourses();
-            if (res.success) setCourses(res.data);
+            if (!res.success) {
+                throw new Error('The server rejected the course list request.');
+            }
+            setCourses(res.data);
+            setFeedback(null);
         } catch (error) {
             console.error('Failed to load courses', error);
+            setFeedback(getErrorMessage(error, 'Failed to load courses.'));
         }
     };
 
     const handleSave = async () => {
         setSaving(true);
+        setFeedback(null);
         try {
+            const response = editingCourse
+                ? await apiClient.updateCourse(editingCourse.id, formData)
+                : await apiClient.createCourse(formData);
+
+            if (!response.success) {
+                throw new Error(editingCourse ? 'The server rejected the course update.' : 'The server rejected the new course.');
+            }
+
             if (editingCourse) {
-                await apiClient.updateCourse(editingCourse.id, formData);
+                setFeedback('Course updated.');
             } else {
-                await apiClient.createCourse(formData);
+                setFeedback('Course created.');
             }
             setShowModal(false);
             setEditingCourse(null);
             resetForm();
-            loadCourses();
+            await loadCourses();
         } catch (error) {
             console.error('Failed to save course', error);
+            setFeedback(getErrorMessage(error, 'Failed to save course.'));
         } finally {
             setSaving(false);
         }
@@ -83,10 +104,15 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ courses, setCourses })
     const handleDelete = async (id: number) => {
         if (confirm('Delete this course? This cannot be undone.')) {
             try {
-                await apiClient.deleteCourse(id);
-                loadCourses();
+                const response = await apiClient.deleteCourse(id);
+                if (!response.success) {
+                    throw new Error('The server rejected the delete request.');
+                }
+                setFeedback('Course deleted.');
+                await loadCourses();
             } catch (error) {
                 console.error('Failed to delete course', error);
+                setFeedback(getErrorMessage(error, 'Failed to delete course.'));
             }
         }
     };
@@ -149,6 +175,21 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ courses, setCourses })
                     <span>Total: <strong style={{ color: 'var(--text-main)' }}>{courses.length}</strong> courses</span>
                 </div>
             </div>
+
+            {feedback && (
+                <div style={{
+                    marginBottom: '18px',
+                    padding: '12px 16px',
+                    borderRadius: '14px',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    color: '#CBD5E1',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                }}>
+                    {feedback}
+                </div>
+            )}
 
             {/* 3-Column Tier Layout */}
             <div style={{
@@ -396,9 +437,19 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ courses, setCourses })
                                             const file = e.target.files?.[0];
                                             if (file) {
                                                 setUploading(true);
-                                                const res = await apiClient.uploadFile(file, 'Image');
-                                                if (res.success) setFormData(prev => ({ ...prev, thumbnail_url: res.url }));
-                                                setUploading(false);
+                                                setFeedback(null);
+                                                try {
+                                                    const res = await apiClient.uploadFile(file, 'Image');
+                                                    if (!res.success) {
+                                                        throw new Error(res.message || 'The upload failed.');
+                                                    }
+                                                    setFormData(prev => ({ ...prev, thumbnail_url: res.url }));
+                                                } catch (error) {
+                                                    console.error('Failed to upload course thumbnail', error);
+                                                    setFeedback(getErrorMessage(error, 'Failed to upload image.'));
+                                                } finally {
+                                                    setUploading(false);
+                                                }
                                             }
                                         }}
                                     />

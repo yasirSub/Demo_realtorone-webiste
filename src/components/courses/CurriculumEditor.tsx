@@ -125,8 +125,18 @@ const CurriculumEditor: React.FC<CurriculumEditorProps> = ({ courseId, onBack })
         return '#6d28d9'; // Consultant / Primary Purple
     };
 
+    const resolveStreamUrl = (url?: string | null) => {
+        if (!url) return '';
+        const filename = url.split('/').pop();
+        return filename ? `http://127.0.0.1:8000/api/stream/${filename}` : url;
+    };
+
     const tierColor = getTierColor(course?.min_tier);
     const tierShadow = `${tierColor}55`; // 33% opacity for shadow
+    const videoMaterial = activeLesson?.materials?.find((m: any) => m.type === 'Video');
+    const hasVideoAsset = Boolean(videoMaterial?.url);
+    const videoStreamUrl = resolveStreamUrl(videoMaterial?.url);
+    const pdfMaterials = activeLesson?.materials?.filter((m: any) => m.type === 'PDF' && m.url) || [];
 
     return (
         <div className="curriculum-container fade-in" style={{
@@ -261,25 +271,21 @@ const CurriculumEditor: React.FC<CurriculumEditorProps> = ({ courseId, onBack })
                             </div>
 
                             {/* Resources Grid (Video twin-cards) */}
-                            {activeLesson.materials?.find((m: any) => m.type === 'Video') ? (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
+                            {hasVideoAsset ? (
+                                <div className="media-preview-grid" style={{ display: 'grid', gap: '20px', marginBottom: '25px' }}>
                                     {/* Card 1: Main Video */}
                                     <div className="editor-card" style={{ padding: '0', background: 'rgba(var(--text-main-rgb), 0.02)', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', overflow: 'hidden', height: '280px', display: 'flex', flexDirection: 'column' }}>
                                         <div className="card-header" style={{ border: 'none', background: 'transparent', padding: '15px 20px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <h3 style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2.5px' }}>VIDEO CONTENT</h3>
                                             <button className="btn-sidebar-delete" onClick={() => {
-                                                const vid = activeLesson.materials.find((m: any) => m.type === 'Video');
+                                                const vid = videoMaterial;
                                                 showConfirm('Delete Video', 'Remove this video file from the lesson?', () => {
                                                     apiClient.deleteMaterial(vid.id).then(() => { loadCourseDetails(); closeConfirm(); });
                                                 });
                                             }}>×</button>
                                         </div>
-                                        <div style={{ position: 'relative', flex: 1, background: '#000', borderRadius: '0 0 24px 24px', overflow: 'hidden' }}>
-                                            <video src={(() => {
-                                                const url = activeLesson.materials.find((m: any) => m.type === 'Video').url;
-                                                const filename = url?.split('/').pop();
-                                                return filename ? `http://127.0.0.1:8000/api/stream/${filename}` : url;
-                                            })()} preload="none" controls poster={activeLesson.materials.find((m: any) => m.type === 'Video').thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                        <div style={{ position: 'relative', flex: 1, background: 'radial-gradient(circle at top, rgba(109,40,217,0.22), rgba(2,6,23,0.95) 70%)', borderRadius: '0 0 24px 24px', overflow: 'hidden' }}>
+                                            <video src={videoStreamUrl} preload="metadata" controls poster={videoMaterial?.thumbnail_url || undefined} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
 
                                             <input type="file" accept="video/*" id="video-replace" hidden onChange={e => handleFileUpload(e, activeLesson.id, 'Video')} />
                                             <label htmlFor="video-replace" style={{ position: 'absolute', top: '10px', left: '10px', padding: '6px 14px', background: 'rgba(0,0,0,0.6)', color: 'white', borderRadius: '8px', fontSize: '9px', fontWeight: 900, cursor: 'pointer', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', opacity: 0, transition: '0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0'}>REPLACE VIDEO</label>
@@ -290,34 +296,35 @@ const CurriculumEditor: React.FC<CurriculumEditorProps> = ({ courseId, onBack })
                                     <div className="editor-card" style={{ padding: '0', background: 'rgba(var(--text-main-rgb), 0.02)', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', overflow: 'hidden', height: '280px', display: 'flex', flexDirection: 'column' }}>
                                         <div className="card-header" style={{ border: 'none', background: 'transparent', padding: '15px 20px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <h3 style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2.5px' }}>THUMBNAIL PREVIEW</h3>
-                                            {activeLesson.materials.find((m: any) => m.type === 'Video').thumbnail_url && (
+                                            {videoMaterial?.thumbnail_url && (
                                                 <button className="btn-sidebar-delete" onClick={() => {
-                                                    const vid = activeLesson.materials.find((m: any) => m.type === 'Video');
+                                                    const vid = videoMaterial;
                                                     showConfirm('Remove Thumbnail', 'Reset poster to default preview?', () => {
                                                         apiClient.updateMaterial(vid.id, { thumbnail_url: '' }).then(() => { loadCourseDetails(); closeConfirm(); });
                                                     });
                                                 }}>×</button>
                                             )}
                                         </div>
-                                        <div style={{ position: 'relative', flex: 1, background: '#000', borderRadius: '0 0 24px 24px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            {activeLesson.materials.find((m: any) => m.type === 'Video').thumbnail_url ? (
-                                                <img src={activeLesson.materials.find((m: any) => m.type === 'Video').thumbnail_url} alt="Thumb" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                        <div style={{ position: 'relative', flex: 1, background: 'linear-gradient(160deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))', borderRadius: '0 0 24px 24px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {videoMaterial?.thumbnail_url ? (
+                                                <img src={videoMaterial.thumbnail_url} alt="Thumb" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                             ) : (
                                                 <div style={{ textAlign: 'center' }}>
                                                     <div style={{ fontSize: '36px', marginBottom: '10px', opacity: 0.2 }}>🖼️</div>
                                                     <div style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600 }}>No custom poster</div>
+                                                    <div style={{ color: 'var(--text-muted)', fontSize: '10px', marginTop: '6px' }}>Upload an image to replace the plain preview.</div>
                                                 </div>
                                             )}
                                             <input type="file" id="thumb-replace" hidden accept="image/*" onChange={async (e) => {
                                                 const f = e.target.files?.[0]; if (!f) return;
                                                 const res = await apiClient.uploadFile(f, 'Image');
                                                 if (res.success) {
-                                                    const vid = activeLesson.materials.find((m: any) => m.type === 'Video');
+                                                    const vid = videoMaterial;
                                                     await apiClient.updateMaterial(vid.id, { thumbnail_url: res.url }); loadCourseDetails();
                                                 }
                                             }} />
                                             <label htmlFor="thumb-replace" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', opacity: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '11px', fontWeight: 900, transition: '0.2s', backdropFilter: 'blur(8px)' }} onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0'}>
-                                                {activeLesson.materials.find((m: any) => m.type === 'Video').thumbnail_url ? 'REPLACE POSTER' : 'UPLOAD CUSTOM POSTER'}
+                                                {videoMaterial?.thumbnail_url ? 'REPLACE POSTER' : 'UPLOAD CUSTOM POSTER'}
                                             </label>
                                         </div>
                                     </div>
@@ -325,8 +332,8 @@ const CurriculumEditor: React.FC<CurriculumEditorProps> = ({ courseId, onBack })
                             ) : (
                                 <div style={{ marginBottom: '25px', textAlign: 'center', padding: '50px', background: 'rgba(var(--text-main-rgb), 0.02)', borderRadius: '24px', border: '2px dashed var(--glass-border)' }}>
                                     <div style={{ fontSize: '40px', marginBottom: '15px', opacity: 0.4 }}>🎬</div>
-                                    <h4 style={{ margin: '0 0 10px', color: 'var(--text-main)', fontSize: '15px', fontWeight: 800 }}>No main video detected</h4>
-                                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', maxWidth: '300px', margin: '0 auto 25px' }}>Attach a video resource to start building this lesson.</p>
+                                    <h4 style={{ margin: '0 0 10px', color: 'var(--text-main)', fontSize: '15px', fontWeight: 800 }}>No video uploaded yet</h4>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', maxWidth: '340px', margin: '0 auto 25px' }}>This lesson only has a placeholder record right now, so the preview area would otherwise appear black. Upload a video to activate the preview player.</p>
                                     <input type="file" accept="video/*" id="video-init" hidden onChange={e => handleFileUpload(e, activeLesson.id, 'Video')} />
                                     <label htmlFor="video-init" className="btn-premium-primary" style={{ cursor: 'pointer', display: 'inline-block' }}>{uploading ? `UPLOADING ${uploadProgress}%` : 'SELECT VIDEO FILE'}</label>
                                 </div>
@@ -346,19 +353,19 @@ const CurriculumEditor: React.FC<CurriculumEditorProps> = ({ courseId, onBack })
                                 <div className="card-header" style={{ padding: '10px 20px 20px', border: 'none', background: 'transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                         <h3 style={{ fontSize: '12px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '1px', margin: 0 }}>PDF DOCUMENTS</h3>
-                                        {activeLesson.materials?.filter((m: any) => m.type === 'PDF').length > 0 && (
+                                        {pdfMaterials.length > 0 && (
                                             <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--tier-color)', background: 'rgba(var(--primary-rgb), 0.1)', padding: '4px 12px', borderRadius: '8px', border: '1px solid rgba(var(--primary-rgb), 0.1)' }}>
-                                                {activeLesson.materials.filter((m: any) => m.type === 'PDF').length} ATTACHED
+                                                {pdfMaterials.length} ATTACHED
                                             </span>
                                         )}
                                     </div>
                                 </div>
 
-                                {activeLesson.materials?.filter((m: any) => m.type === 'PDF').length > 0 && (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '25px', alignItems: 'start' }}>
+                                {pdfMaterials.length > 0 && (
+                                    <div className="pdf-preview-grid" style={{ display: 'grid', gap: '25px', alignItems: 'start' }}>
                                         {/* Left Side: List of Documents */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                            {activeLesson.materials.filter((m: any) => m.type === 'PDF').map((pdf: any) => (
+                                            {pdfMaterials.map((pdf: any) => (
                                                 <div
                                                     key={pdf.id}
                                                     className="editor-card"
@@ -470,11 +477,11 @@ const CurriculumEditor: React.FC<CurriculumEditorProps> = ({ courseId, onBack })
                                     </div>
                                 )}
 
-                                {activeLesson.materials?.filter((m: any) => m.type === 'PDF').length === 0 && (
+                                {pdfMaterials.length === 0 && (
                                     <div style={{ textAlign: 'center', padding: '60px', background: 'rgba(var(--text-main-rgb), 0.02)', borderRadius: '24px', border: '1px solid var(--glass-border)', boxShadow: '0 8px 30px rgba(0,0,0,0.1)' }}>
                                         <div style={{ fontSize: '40px', marginBottom: '15px', opacity: 0.4 }}>📄</div>
-                                        <h4 style={{ margin: '0 0 10px', color: 'var(--text-main)', fontSize: '15px', fontWeight: 800 }}>No documents detected</h4>
-                                        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', maxWidth: '300px', margin: '0 auto 25px' }}>Attach a supplementary PDF document to this lesson.</p>
+                                        <h4 style={{ margin: '0 0 10px', color: 'var(--text-main)', fontSize: '15px', fontWeight: 800 }}>No documents uploaded yet</h4>
+                                        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', maxWidth: '320px', margin: '0 auto 25px' }}>This lesson has no usable PDF file attached yet. Upload a document to enable preview here.</p>
                                         <input type="file" id="pdf-init" hidden accept="application/pdf" onChange={e => {
                                             const file = e.target.files?.[0]; if (!file) return;
                                             setUploading(true);

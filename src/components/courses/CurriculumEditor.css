@@ -298,6 +298,7 @@
 .curriculum-main {
     flex: 1;
     display: flex;
+    min-width: 0;
     border-radius: 24px;
     background: var(--bg-card);
     box-shadow: 0 15px 45px rgba(0, 0, 0, 0.15);
@@ -310,6 +311,15 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
+    min-width: 0;
+}
+
+.media-preview-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.pdf-preview-grid {
+    grid-template-columns: minmax(260px, 0.95fr) minmax(320px, 1.35fr);
 }
 
 .lesson-content-viewport {
@@ -613,6 +623,128 @@
     font-weight: 700;
     border-radius: 12px 12px 0 0;
     border-bottom: 1px solid var(--glass-border);
+}
+
+@media (max-width: 1280px) {
+    .curriculum-container {
+        padding: 1.25rem 1.25rem 1.5rem;
+    }
+
+    .curriculum-layout {
+        gap: 1rem;
+    }
+
+    .curriculum-sidebar {
+        width: 280px;
+    }
+
+    .pdf-preview-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1024px) {
+    .curriculum-container {
+        height: auto;
+        min-height: calc(100vh - var(--header-height));
+    }
+
+    .curriculum-header {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .curriculum-header h1 {
+        font-size: 1.35rem;
+    }
+
+    .curriculum-layout {
+        flex-direction: column;
+    }
+
+    .curriculum-sidebar {
+        width: 100%;
+    }
+
+    .curriculum-main {
+        width: 100%;
+    }
+
+    .sidebar-content {
+        max-height: 320px;
+    }
+}
+
+@media (max-width: 768px) {
+    .curriculum-container {
+        padding: 1rem 0.85rem 1.25rem;
+        gap: 0.85rem;
+    }
+
+    .curriculum-header h1 {
+        font-size: 1.15rem;
+        line-height: 1.25;
+    }
+
+    .media-preview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card-header,
+    .card-body,
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+    }
+
+    .premium-modal-card {
+        width: min(92vw, 450px);
+    }
+
+    .lesson-item {
+        padding: 0.8rem 0.85rem;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 560px) {
+    .curriculum-container {
+        padding: 0.85rem 0.65rem 1rem;
+    }
+
+    .curriculum-header {
+        align-items: flex-start;
+    }
+
+    .curriculum-sidebar,
+    .curriculum-main,
+    .editor-card,
+    .premium-modal-card {
+        border-radius: 18px;
+    }
+
+    .sidebar-content {
+        padding: 1rem;
+    }
+
+    .module-header h3 {
+        font-size: 0.62rem;
+        letter-spacing: 0.9px;
+    }
+
+    .btn-back {
+        padding: 0.6rem 0.9rem;
+    }
 }
 
 @keyframes modalPop {
