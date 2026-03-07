@@ -76,7 +76,6 @@ jobs:
             rm -f website-release.tgz
 
             export API_PROXY_URL="${{ secrets.API_PROXY_URL }}"
-            export WEBSITE_PORT="${{ secrets.WEBSITE_PORT }}"
             export WEBSITE_IMAGE="${{ secrets.WEBSITE_IMAGE || 'ghcr.io/yasirsub/realtorone-website:latest' }}"
 
             docker compose -f compose.yaml pull website

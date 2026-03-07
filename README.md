@@ -48,15 +48,15 @@ Add these GitHub repository secrets before using the workflow in [.github/workfl
 - `VPS_SSH_KEY`
 - `VPS_APP_DIR`
 - `API_PROXY_URL`
-- `WEBSITE_PORT`
 
 Recommended values for your VPS:
 
 - `VPS_HOST=187.77.184.129`
 - `VPS_USERNAME=root`
 - `API_PROXY_URL=http://187.77.184.129:8000/api/`
-- `WEBSITE_PORT=3001`
 - `VPS_APP_DIR=/root/realtorone/website`
+
+The website stack now defaults to port `80`, so `WEBSITE_PORT` is optional and usually should be left unset unless you intentionally want a different external port.
 
 `VPS_SSH_KEY` must be the full private SSH key contents, not the SSH command.
 

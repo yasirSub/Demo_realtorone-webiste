@@ -7,7 +7,7 @@ services:
     container_name: realtorone-website
     restart: always
     ports:
-      - "${WEBSITE_PORT:-3001}:80"
+      - "${WEBSITE_PORT:-80}:80"
     environment:
       - API_PROXY_URL=${API_PROXY_URL:-http://host.docker.internal:8000/api/}
     extra_hosts:
