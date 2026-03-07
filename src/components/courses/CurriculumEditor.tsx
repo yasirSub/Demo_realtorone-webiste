@@ -125,10 +125,21 @@ const CurriculumEditor: React.FC<CurriculumEditorProps> = ({ courseId, onBack })
         return '#6d28d9'; // Consultant / Primary Purple
     };
 
+    const getApiRoot = () => {
+        const envBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
+        const normalizedBase = (envBase && envBase.trim())
+            || (['localhost', '127.0.0.1'].includes(window.location.hostname) ? 'http://127.0.0.1:8000/api' : '/api');
+
+        const withoutTrailingSlash = normalizedBase.replace(/\/+$/, '');
+        return withoutTrailingSlash.endsWith('/api')
+            ? withoutTrailingSlash.slice(0, -4)
+            : withoutTrailingSlash;
+    };
+
     const resolveStreamUrl = (url?: string | null) => {
         if (!url) return '';
         const filename = url.split('/').pop();
-        return filename ? `http://127.0.0.1:8000/api/stream/${filename}` : url;
+        return filename ? `${getApiRoot()}/api/stream/${filename}` : url;
     };
 
     const tierColor = getTierColor(course?.min_tier);
@@ -444,8 +455,7 @@ const CurriculumEditor: React.FC<CurriculumEditorProps> = ({ courseId, onBack })
                                                         href={(() => {
                                                             const pdf = activeLesson.materials.find((m: any) => m.id === previewPdfId);
                                                             if (!pdf) return '#';
-                                                            const filename = pdf.url?.split('/').pop();
-                                                            return filename ? `http://127.0.0.1:8000/api/stream/${filename}` : pdf.url;
+                                                            return resolveStreamUrl(pdf.url);
                                                         })()}
                                                         target="_blank" rel="noreferrer"
                                                         style={{ fontSize: '9px', fontWeight: 900, color: 'var(--tier-color)', textDecoration: 'none', padding: '4px 10px', background: 'rgba(var(--primary-rgb), 0.1)', borderRadius: '6px' }}
@@ -459,8 +469,7 @@ const CurriculumEditor: React.FC<CurriculumEditorProps> = ({ courseId, onBack })
                                                             src={(() => {
                                                                 const pdf = activeLesson.materials.find((m: any) => m.id === previewPdfId);
                                                                 if (!pdf) return '';
-                                                                const filename = pdf.url?.split('/').pop();
-                                                                return filename ? `http://127.0.0.1:8000/api/stream/${filename}` : pdf.url;
+                                                                return resolveStreamUrl(pdf.url);
                                                             })()}
                                                             style={{ width: '100%', height: '100%', border: 'none' }}
                                                             key={previewPdfId}

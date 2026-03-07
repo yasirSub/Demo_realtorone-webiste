@@ -1,6 +1,7 @@
 server {
     listen 80;
     server_name localhost;
+    client_max_body_size 1024m;
 
     location / {
         root /usr/share/nginx/html;
@@ -14,6 +15,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_request_buffering off;
+        proxy_read_timeout 1800s;
+        proxy_send_timeout 1800s;
     }
 
     error_page 500 502 503 504 /50x.html;
