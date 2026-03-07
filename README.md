@@ -36,7 +36,7 @@ Flow:
 
 1. You push changes to `main`
 2. GitHub Actions connects to the VPS over SSH
-3. The VPS updates the repo copy
+3. GitHub Actions uploads the latest repo snapshot to the VPS
 4. `docker compose up -d --build` rebuilds and restarts the website container
 
 The website container serves static files with nginx, and nginx proxies `/api/` to the backend URL from `API_PROXY_URL` using [nginx.conf.template](nginx.conf.template).
@@ -59,6 +59,8 @@ Recommended values for your VPS:
 - `VPS_APP_DIR=/root/realtorone/website`
 
 `VPS_SSH_KEY` must be the full private SSH key contents, not the SSH command.
+
+You do not need a GitHub deploy key for this workflow because the VPS does not pull from GitHub directly.
 
 The frontend code already uses `/api` automatically in production via [src/api/client.ts](src/api/client.ts).
 
