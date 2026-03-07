@@ -1,13 +1,16 @@
 name: Deploy Website to VPS
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - Build and Push Image
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
   deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -74,6 +77,8 @@ jobs:
 
             export API_PROXY_URL="${{ secrets.API_PROXY_URL }}"
             export WEBSITE_PORT="${{ secrets.WEBSITE_PORT }}"
+            export WEBSITE_IMAGE="${{ secrets.WEBSITE_IMAGE || 'ghcr.io/yasirsub/realtorone-website:latest' }}"
 
-            docker compose -f compose.yaml up -d --build --remove-orphans
+            docker compose -f compose.yaml pull website
+            docker compose -f compose.yaml up -d --remove-orphans
             docker image prune -f

@@ -1,18 +1,16 @@
 # RealtorOne Admin Website - VPS Docker deployment
-# Uses same backend and database; set API_PROXY_URL to your backend (e.g. http://127.0.0.1:8000/api/)
+# Uses a pre-built GitHub Container Registry image so Docker Manager / Portainer
+# can update by pulling the latest image instead of rebuilding on the server.
 #
 # Portainer deploy:
 #   1. Stacks > Add stack > Web editor
 #   2. Paste this compose; set API_PROXY_URL env (Stacks > your stack > Editor > Environment)
-#   3. Deploy. Website runs on WEBSITE_PORT (default 3001); /api proxies to backend.
+#   3. Redeploy stack to pull the newest image after GitHub Actions publishes it.
 version: '3.8'
 services:
   website:
-    # VPS-friendly: build locally (no GHCR login / package visibility issues)
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: realtorone-website:local
+    image: ${WEBSITE_IMAGE:-ghcr.io/yasirsub/realtorone-website:latest}
+    pull_policy: always
     container_name: realtorone-website
     restart: always
     ports:
