@@ -13,51 +13,34 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Check required secrets
+        run: |
+          test -n "${{ secrets.VPS_HOST }}"
+          test -n "${{ secrets.VPS_USERNAME }}"
+          test -n "${{ secrets.VPS_SSH_KEY }}"
+          test -n "${{ secrets.VPS_APP_DIR }}"
+          test -n "${{ secrets.API_PROXY_URL }}"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build website
-        env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-        run: npm run build
-
-      - name: Ensure target directory exists
+      - name: Deploy repo and restart Docker stack
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            mkdir -p "${{ secrets.VPS_WEB_ROOT }}"
+            set -e
+            mkdir -p "${{ secrets.VPS_APP_DIR }}"
+            cd "${{ secrets.VPS_APP_DIR }}"
 
-      - name: Upload built website
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: dist/*
-          target: ${{ secrets.VPS_WEB_ROOT }}
-          strip_components: 1
-          rm: true
+            if [ ! -d .git ]; then
+              git clone --branch main https://github.com/${{ github.repository }}.git .
+            else
+              git fetch origin main
+              git reset --hard origin/main
+            fi
 
-      - name: Fix permissions and reload nginx
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            chown -R www-data:www-data "${{ secrets.VPS_WEB_ROOT }}" || true
-            find "${{ secrets.VPS_WEB_ROOT }}" -type d -exec chmod 755 {} \;
-            find "${{ secrets.VPS_WEB_ROOT }}" -type f -exec chmod 644 {} \;
-            sudo systemctl reload nginx || sudo service nginx reload || true
+            export API_PROXY_URL="${{ secrets.API_PROXY_URL }}"
+            export WEBSITE_PORT="${{ secrets.WEBSITE_PORT }}"
+
+            docker compose -f compose.yaml up -d --build --remove-orphans
+            docker image prune -f

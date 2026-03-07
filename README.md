@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# RealtorOne Website
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript + Vite admin website for RealtorOne.
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Install dependencies and start Vite:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npx vite --host localhost
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+For local frontend against the live VPS backend, use:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```env
+VITE_API_BASE_URL=http://187.77.184.129:8000/api
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+This can be placed in `.env.local`.
+
+## Production behavior
+
+The app chooses its API base like this:
+
+- On localhost, it defaults to `http://127.0.0.1:8000/api`
+- On a deployed website, it defaults to `/api`
+
+That means the production container should proxy `/api` to the existing Laravel backend.
+
+## Auto deploy from GitHub to VPS Docker
+
+This repo is set up for push-to-deploy through GitHub Actions.
+
+Flow:
+
+1. You push changes to `main`
+2. GitHub Actions connects to the VPS over SSH
+3. The VPS updates the repo copy
+4. `docker compose up -d --build` rebuilds and restarts the website container
+
+The website container serves static files with nginx, and nginx proxies `/api/` to the backend URL from `API_PROXY_URL` using [nginx.conf.template](nginx.conf.template).
+
+Add these GitHub repository secrets before using the workflow in [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
+
+- `VPS_HOST`
+- `VPS_USERNAME`
+- `VPS_SSH_KEY`
+- `VPS_APP_DIR`
+- `API_PROXY_URL`
+- `WEBSITE_PORT`
+
+Recommended values for your VPS:
+
+- `VPS_HOST=187.77.184.129`
+- `VPS_USERNAME=root`
+- `API_PROXY_URL=http://187.77.184.129:8000/api/`
+- `WEBSITE_PORT=3001`
+- `VPS_APP_DIR=/root/realtorone/website`
+
+`VPS_SSH_KEY` must be the full private SSH key contents, not the SSH command.
+
+The frontend code already uses `/api` automatically in production via [src/api/client.ts](src/api/client.ts).
+
+## Build
+
+```bash
+npm run build
 ```
